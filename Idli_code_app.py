@@ -57,7 +57,7 @@ def idli_code_to_text_decrypt(code: str) -> Tuple[Optional[str], Optional[List[s
     except Exception as e:
         return None, [f"Error during final decryption: {e}"]
 
-# Adjusted words_per_line slightly, might help mobile but check appearance
+# Use a moderate number of words per line for better density
 def format_idli_code_output(code_str: str, words_per_line: int = 8) -> str:
     if not code_str: return ""
     words = code_str.split()
@@ -67,63 +67,68 @@ def format_idli_code_output(code_str: str, words_per_line: int = 8) -> str:
 # --- Streamlit UI ---
 st.set_page_config(
     page_title="Idli Code Converter",
-    layout="centered" # Crucial for responsiveness baseline
+    layout="centered"
 )
 
 # --- Header ---
 st.title("Idli Code Converter")
-st.caption("Encrypt text into a special 'Idli Code' format or decrypt it back.")
-st.write("---")
+st.caption("Encrypt text into 'Idli Code' or decrypt it back.")
+# Removed divider here to save space
 
 # --- Operation Selection ---
-st.markdown("##### Select Operation")
-option = st.radio(
+# Reduced spacing before this section
+st.radio(
     "Select Operation:",
     ('Encrypt Text', 'Decrypt Idli Code'),
     horizontal=True,
     key="operation_choice",
-    label_visibility="collapsed"
+    label_visibility="collapsed" # Hide label, title is above
 )
-st.write("")
+# Removed st.write("") spacer
 
 # --- Main Content Area ---
 
 # --- Encrypt ---
 if option == 'Encrypt Text':
-    # Container helps group elements, border adds visual separation
+    # Reduced top margin implicitly by removing spacers above
     with st.container(border=True):
         st.subheader("Encrypt Text → Idli Code")
-        st.markdown("Enter text below to convert it into 'Idli Code'.")
+        # Removed markdown description to save space
 
         user_input = st.text_area(
             "Text to Encrypt",
-            height=140,
+            height=100,  # Reduced height
             key="encrypt_input",
             label_visibility="visible",
             placeholder="Type or paste text here..."
         )
-        st.write("") # Vertical space
+        # Removed st.write("") spacer
 
         encrypt_pressed = st.button("Encrypt Text", key="encrypt_button", type="primary")
 
-        # Output section appears below after button press
         if encrypt_pressed:
             input_text = user_input.strip()
             if input_text:
                 with st.spinner("Encrypting..."):
                     encrypted_code = text_to_idli_code_encrypt(input_text)
 
-                st.markdown("---") # Divider before output
+                # Removed divider here to save space
 
                 if "Error" not in encrypted_code:
                     formatted_code = format_idli_code_output(encrypted_code)
 
                     st.markdown("##### Encrypted Idli Code:")
-                    # Keep st.code for Idli Code - less likely to overflow due to formatting
-                    with st.container():
-                        st.code(formatted_code, language=None, line_numbers=False)
-                    st.caption("Tip: Click inside the code block above before using Select All (Ctrl+A / Cmd+A).")
-                    st.write("")
+                    # --- CHANGE: Use text_area for encrypted output ---
+                    st.text_area(
+                        "Encrypted Output",
+                        value=formatted_code,
+                        height=120, # Reduced height
+                        key="encrypted_output_area",
+                        disabled=True,
+                        label_visibility="collapsed"
+                    )
+                    # --- Removed selection tip ---
+                    # Removed st.write("") spacer
 
                     st.download_button(
                         label="Download Encrypted Code (.txt)",
@@ -133,72 +138,74 @@ if option == 'Encrypt Text':
                         key="download_encrypted"
                     )
 
-                    # Verification uses columns which are responsive
-                    with st.expander("Verification Details (Optional)"):
-                        st.caption("_The encrypted code was automatically decrypted back to check consistency._")
+                    # Verification Expander (kept concise)
+                    with st.expander("Verification Details"): # Removed "(Optional)"
+                        # Removed caption inside expander
                         re_decrypted_text, errors = idli_code_to_text_decrypt(encrypted_code)
                         if errors:
-                            st.error(f"Verification Error: Could not decrypt the generated code. Details: `{errors}`")
+                            st.error(f"Verification Error: Decryption failed. Details: `{errors}`", icon="⚠️")
                         elif re_decrypted_text is not None:
-                            st.caption("**Text After Round-Trip:**")
-                            # Use text_area for plain text verification output - handles wrapping
-                            st.text_area("Re-decrypted Verify Area", value=re_decrypted_text, height=100, key="redecrypted_verify", disabled=True, label_visibility="collapsed")
+                            # Use text_area here too for consistency
+                            st.text_area("Re-decrypted Verify Area", value=re_decrypted_text, height=80, key="redecrypted_verify", disabled=True, label_visibility="collapsed")
                             if input_text == re_decrypted_text:
-                                st.success("Verification Successful: Original and re-decrypted text match.")
+                                st.success("Verification Successful.", icon="✅")
                             else:
-                                st.error("Verification Failed: Original and re-decrypted text differ.")
-                                v_col1, v_col2 = st.columns(2) # Responsive columns
+                                st.error("Verification Failed: Texts differ.", icon="❌")
+                                # Comparison kept compact
+                                v_col1, v_col2 = st.columns(2)
                                 with v_col1: st.caption("Original:"); st.code(input_text, language=None)
                                 with v_col2: st.caption("Re-decrypted:"); st.code(re_decrypted_text, language=None)
                         else:
-                            st.warning("Verification could not be performed (decryption failed).")
-                else: pass # Error shown by function
-            else: st.warning("Please enter text to encrypt.")
+                            st.warning("Verification could not be performed.", icon="ℹ️")
+                else: pass
+            else: st.warning("Please enter text to encrypt.", icon="⚠️")
 
 # --- Decrypt ---
 elif option == 'Decrypt Idli Code':
-    # Container helps group elements
     with st.container(border=True):
         st.subheader("Decrypt Idli Code → Text")
-        st.markdown("Enter an 'Idli Code' sequence to convert it back to text.")
+        # Removed markdown description
 
         code_input = st.text_area(
             "Idli Code Sequence",
-            height=160,
+            height=120, # Reduced height
             key="decrypt_input",
             label_visibility="visible",
             placeholder="Paste Idli Code sequence here...",
-            help="The code should be a sequence of specific words separated by spaces."
+            help="Sequence of specific words separated by spaces." # Made help shorter
         )
-        st.write("")
+        # Removed st.write("") spacer
 
         decrypt_pressed = st.button("Decrypt Code", key="decrypt_button", type="primary")
 
-        # Output section appears below
         if decrypt_pressed:
             cleaned_input = code_input.strip()
             if cleaned_input:
                 with st.spinner("Decrypting..."):
                     decrypted_text, errors = idli_code_to_text_decrypt(cleaned_input)
 
-                st.markdown("---") # Divider
+                # Removed divider here
 
                 if errors:
-                    # Simplified error checking/display
                     is_structure_error = any("Invalid 'Idli Code' structure" in str(e) for e in errors)
                     if is_structure_error or any("Problem converting binary" in str(e) for e in errors) or any("Internal Error" in str(e) for e in errors):
-                         st.error(f"Decryption Error: {errors[0]}")
+                         st.error(f"Decryption Error: {errors[0]}", icon="⚠️")
                     else:
-                         st.error(f"Invalid Input: Found words not part of the 'Idli Code' format: `{', '.join(errors)}`")
-                         st.caption("Please ensure the input contains only the allowed code words.")
+                         st.error(f"Invalid Input: Found non-code words: `{', '.join(errors)}`", icon="⚠️")
+                         # Removed extra caption
                 elif decrypted_text is not None:
                     st.markdown("##### Decrypted Text:")
-                    # --- CHANGE HERE: Use text_area for decrypted output for wrapping ---
-                    st.text_area("Decrypted Text Output Area", value=decrypted_text, height=140, key="decrypted_output", disabled=True, label_visibility="collapsed")
-                    # Note: Text will be slightly dimmed, but wrapping is prioritized for responsiveness.
-                    st.caption("Tip: Click inside the text block above before using Select All (Ctrl+A / Cmd+A).")
-                    # ---------------------------------------------------------------------
-                    st.write("")
+                    # --- Use text_area for decrypted output (already was) ---
+                    st.text_area(
+                        "Decrypted Output",
+                        value=decrypted_text,
+                        height=120, # Reduced height
+                        key="decrypted_output_area",
+                        disabled=True,
+                        label_visibility="collapsed"
+                    )
+                    # --- Removed selection tip ---
+                    # Removed st.write("") spacer
 
                     st.download_button(
                         label="Download Decrypted Text (.txt)",
@@ -208,33 +215,31 @@ elif option == 'Decrypt Idli Code':
                         key="download_decrypted"
                     )
 
-                    # Verification uses columns which are responsive
-                    with st.expander("Verification Details (Optional)"):
-                        st.caption("_The decrypted text was re-encrypted to check consistency with the input code._")
+                    # Verification Expander (kept concise)
+                    with st.expander("Verification Details"):
+                        # Removed caption inside expander
                         re_encrypted_code = text_to_idli_code_encrypt(decrypted_text)
                         original_valid_words = [word.strip().title() for word in re.split(r'\s+', cleaned_input) if word.strip().title() in VALID_WORDS]
                         standardized_original_code = ' '.join(original_valid_words)
                         if "Error" in re_encrypted_code:
-                            st.error(f"Verification Error: Could not re-encrypt the result. Details: `{re_encrypted_code}`")
+                            st.error(f"Verification Error: Re-encryption failed. Details: `{re_encrypted_code}`", icon="⚠️")
                         else:
-                            st.caption("**Re-encrypted Code (from decrypted text):**")
                             formatted_reencrypted = format_idli_code_output(re_encrypted_code)
-                            # Use st.code for verification output (Idli code)
-                            with st.container():
-                                st.code(formatted_reencrypted, language=None, line_numbers=False)
+                            # Use text_area here too
+                            st.text_area("Re-encrypted Verify Area", value=formatted_reencrypted, height=80, key="reencrypted_verify", disabled=True, label_visibility="collapsed")
                             if standardized_original_code == re_encrypted_code:
-                                st.success("Verification Successful: Input code matches re-encrypted text.")
+                                st.success("Verification Successful.", icon="✅")
                             else:
-                                st.error("Verification Failed: Input code differs from re-encrypted text.")
-                                st.caption("Mismatch may be due to invalid words/formatting in original input.")
-                                v_col1, v_col2 = st.columns(2) # Responsive columns
-                                with v_col1: st.caption("Standardized Input:"); st.code(standardized_original_code, language=None)
+                                st.error("Verification Failed: Codes differ.", icon="❌")
+                                st.caption("Mismatch may be due to invalid words/formatting in input.") # Shorter caption
+                                v_col1, v_col2 = st.columns(2)
+                                with v_col1: st.caption("Input (Valid):"); st.code(standardized_original_code, language=None)
                                 with v_col2: st.caption("Re-encrypted:"); st.code(re_encrypted_code, language=None)
                 elif decrypted_text is None and not errors:
-                     st.warning("Input is empty or contains no valid 'Idli Code' words.")
+                     st.warning("Input empty or no valid words.", icon="ℹ️") # Shorter message
             else:
-                st.warning("Please enter 'Idli Code' to decrypt.")
+                st.warning("Please enter 'Idli Code' to decrypt.", icon="⚠️")
 
 # --- Footer ---
-st.write("---")
-st.caption("Idli Code Converter")
+# Removed divider
+st.caption("Idli Code Converter") # Keep footer minimal
