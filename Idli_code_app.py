@@ -8,12 +8,17 @@ quaternary_to_binary = {'0': '00', '1': '01', '2': '10', '3': '11'}
 binary_to_quaternary = {v: k for k, v in quaternary_to_binary.items()}
 
 def text_to_idli_code(text):
-    # Convert each character in text to binary, then group by 2 bits
+    # Convert each character in text to binary, including special characters
     binary_str = ''.join([format(ord(c), '08b') for c in text])
     chunks = textwrap.wrap(binary_str, 2)
     
     # Convert binary chunks to quaternary, then to Idli words
     quaternary = ''.join([binary_to_quaternary.get(chunk, '') for chunk in chunks])
+    
+    # Check if any chunk could not be mapped
+    if '' in quaternary:
+        raise ValueError("Some characters in the input cannot be encoded. Please check special characters like '-' and others.")
+    
     words = [digit_to_word[d] for d in quaternary if d in digit_to_word]
     
     # Check if all characters are valid
@@ -57,16 +62,19 @@ if option == 'Encrypt':
     user_input = st.text_area("Enter text to encrypt:")
     if st.button("Encrypt"):
         if user_input.strip() != "":
-            encrypted = text_to_idli_code(user_input)
-            formatted = format_idli_code(encrypted)
-            st.text_area("Encrypted Idli Code:", value=formatted, height=300)
-            
-            # Decrypt back to verify encryption-decryption pair
-            decrypted = idli_code_to_text(encrypted)
-            if decrypted == user_input:
-                st.success("Encryption and Decryption successful! The text matches.")
-            else:
-                st.error("Error: Decryption mismatch. Please check the encryption and decryption process.")
+            try:
+                encrypted = text_to_idli_code(user_input)
+                formatted = format_idli_code(encrypted)
+                st.text_area("Encrypted Idli Code:", value=formatted, height=300)
+                
+                # Decrypt back to verify encryption-decryption pair
+                decrypted = idli_code_to_text(encrypted)
+                if decrypted == user_input:
+                    st.success("Encryption and Decryption successful! The text matches.")
+                else:
+                    st.error("Error: Decryption mismatch. Please check the encryption and decryption process.")
+            except Exception as e:
+                st.error(f"Error during encryption: {str(e)}")
         else:
             st.warning("Please enter text to encrypt.")
 
@@ -74,14 +82,17 @@ elif option == 'Decrypt':
     code_input = st.text_area("Enter your space-separated Idli Code:")
     if st.button("Decrypt"):
         if code_input.strip() != "":
-            result = idli_code_to_text(code_input)
-            st.text_area("Decrypted Text:", value=result, height=200)
-            
-            # Check if decrypted text matches the original code
-            encrypted_check = text_to_idli_code(result)
-            if encrypted_check == code_input.strip():
-                st.success("Decryption and encryption matched!")
-            else:
-                st.error("Decryption mismatch detected.")
+            try:
+                result = idli_code_to_text(code_input)
+                st.text_area("Decrypted Text:", value=result, height=200)
+                
+                # Check if decrypted text matches the original code
+                encrypted_check = text_to_idli_code(result)
+                if encrypted_check == code_input.strip():
+                    st.success("Decryption and encryption matched!")
+                else:
+                    st.error("Decryption mismatch detected.")
+            except Exception as e:
+                st.error(f"Error during decryption: {str(e)}")
         else:
             st.warning("Please enter Idli Code to decrypt.")
