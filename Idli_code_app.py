@@ -8,11 +8,15 @@ quaternary_to_binary = {'0': '00', '1': '01', '2': '10', '3': '11'}
 binary_to_quaternary = {v: k for k, v in quaternary_to_binary.items()}
 
 def text_to_idli_code(text):
+    # Convert each character in text to binary, then group by 2 bits
     binary_str = ''.join([format(ord(c), '08b') for c in text])
     chunks = textwrap.wrap(binary_str, 2)
+    
+    # Convert binary chunks to quaternary, then to Idli words
     quaternary = ''.join([binary_to_quaternary.get(chunk, '') for chunk in chunks])
     words = [digit_to_word[d] for d in quaternary if d in digit_to_word]
     
+    # Check if all characters are valid
     if len(words) != len(quaternary):
         raise ValueError("Invalid characters detected. Please use only valid words: Idli, Dosa, Sambar, Chutney.")
     
@@ -21,13 +25,18 @@ def text_to_idli_code(text):
 def idli_code_to_text(code):
     try:
         code_words = code.strip().split()
+        
+        # Convert words to quaternary digits
         quaternary = ''.join([word_to_digit[word] for word in code_words if word in word_to_digit])
         
         # Ensure all words are valid
         if len(quaternary) != len(code_words):
             raise ValueError("Invalid Idli Code format. Please use only valid words: Idli, Dosa, Sambar, Chutney.")
         
+        # Convert quaternary to binary
         binary = ''.join([quaternary_to_binary[d] for d in quaternary])
+        
+        # Convert binary back to text
         bytes_ = textwrap.wrap(binary, 8)
         decoded = ''.join([chr(int(b, 2)) for b in bytes_ if len(b) == 8])
         return decoded
