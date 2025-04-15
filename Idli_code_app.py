@@ -48,17 +48,17 @@ def format_idli_code(code_str):
     lines = [' '.join(words[i:i+10]) for i in range(0, len(words), 10)]
     return '\n'.join(lines)
 
-st.set_page_config(page_title="Idli Code Encoder", layout="wide")
+st.set_page_config(page_title="Idli Code Encryptor", layout="wide")
 st.markdown("<h1 style='text-align: center;'>Idli Code Encryptor / Decryptor</h1>", unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["🔐 Encrypt", "🔓 Decrypt"])
+tab1, tab2 = st.tabs(["Encrypt", "Decrypt"])
 
 with tab1:
     st.subheader("Enter text to encrypt:")
     user_input = st.text_area("Text input:", key="enc_input")
 
     if st.button("Encrypt"):
-        if user_input.strip() != "":
+        if user_input.strip():
             encrypted = text_to_idli_code(user_input)
             formatted = format_idli_code(encrypted)
             re_decrypted = idli_code_to_text(formatted)
@@ -73,7 +73,6 @@ with tab1:
                     st.success("Success: input and encrypted-decrypted pair matched 100%")
                 else:
                     st.error(f"Warning: Only {accuracy}% match between input and encrypted-decrypted pair")
-
         else:
             st.warning("Please enter some text to encrypt.")
 
@@ -82,7 +81,7 @@ with tab2:
     code_input = st.text_area("Idli Code input:", key="dec_input")
 
     if st.button("Decrypt"):
-        if code_input.strip() != "":
+        if code_input.strip():
             decrypted = idli_code_to_text(code_input)
             re_encrypted = text_to_idli_code(decrypted)
             formatted = format_idli_code(re_encrypted)
