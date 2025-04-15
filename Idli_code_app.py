@@ -1,43 +1,78 @@
 import streamlit as st
+import textwrap
 
-# Function to encrypt the text
-def encrypt(text):
-    # Simple encryption logic (you can change this)
-    encrypted_text = ''.join([chr(ord(c) + 3) for c in text])  # Shift each char by 3
-    return encrypted_text
+# Encoding dictionary
+word_to_digit = {'Idli': '0', 'Dosa': '1', 'Sambar': '2', 'Chutney': '3'}
+digit_to_word = {v: k for k, v in word_to_digit.items()}
+quaternary_to_binary = {'0': '00', '1': '01', '2': '10', '3': '11'}
+binary_to_quaternary = {v: k for k, v in quaternary_to_binary.items()}
 
-# Function to decrypt the text
-def decrypt(text):
+def text_to_idli_code(text):
+    binary_str = ''.join([format(ord(c), '08b') for c in text])
+    chunks = textwrap.wrap(binary_str, 2)
+    quaternary = ''.join([binary_to_quaternary.get(chunk, '') for chunk in chunks])
+    words = [digit_to_word[d] for d in quaternary if d in digit_to_word]
+    
+    if len(words) != len(quaternary):
+        raise ValueError("Invalid characters detected. Please use only valid words: Idli, Dosa, Sambar, Chutney.")
+    
+    return ' '.join(words)
+
+def idli_code_to_text(code):
     try:
-        decrypted_text = ''.join([chr(ord(c) - 3) for c in text])  # Reverse the shift
-        return decrypted_text
+        code_words = code.strip().split()
+        quaternary = ''.join([word_to_digit[word] for word in code_words if word in word_to_digit])
+        
+        # Ensure all words are valid
+        if len(quaternary) != len(code_words):
+            raise ValueError("Invalid Idli Code format. Please use only valid words: Idli, Dosa, Sambar, Chutney.")
+        
+        binary = ''.join([quaternary_to_binary[d] for d in quaternary])
+        bytes_ = textwrap.wrap(binary, 8)
+        decoded = ''.join([chr(int(b, 2)) for b in bytes_ if len(b) == 8])
+        return decoded
     except Exception as e:
-        return f"Error during decryption: {str(e)}"
+        return f"Error: {str(e)}"
 
-# Streamlit app UI
-st.title("Encryption/Decryption App")
+def format_idli_code(code_str):
+    words = code_str.split()
+    lines = [' '.join(words[i:i+10]) for i in range(0, len(words), 10)]
+    return '\n'.join(lines)
 
-# User input
-input_text = st.text_area("Enter your text to encrypt", height=200)
+# Streamlit UI
+st.title("Idli Code Encryptor & Decryptor")
 
-# Encrypt button
-if st.button("Encrypt"):
-    encrypted_text = encrypt(input_text)
-    st.subheader("Encrypted Text:")
-    st.text_area("Encrypted Text", encrypted_text, height=200)
-    st.write("You can copy the encrypted text for decryption.")
+option = st.radio("Choose an option:", ['Encrypt', 'Decrypt'])
 
-# Decrypt button
-if st.button("Decrypt"):
-    encrypted_input = st.text_area("Enter encrypted text to decrypt", height=200)
-    if encrypted_input:
-        decrypted_text = decrypt(encrypted_input)
-        if "Error during decryption" in decrypted_text:
-            st.error(decrypted_text)  # Show error if decryption fails
-        else:
-            st.subheader("Decrypted Text:")
-            st.text_area("Decrypted Text", decrypted_text, height=200)
-            if decrypted_text == input_text:
-                st.success("Decryption successful! The text matches the original.")
+if option == 'Encrypt':
+    user_input = st.text_area("Enter text to encrypt:")
+    if st.button("Encrypt"):
+        if user_input.strip() != "":
+            encrypted = text_to_idli_code(user_input)
+            formatted = format_idli_code(encrypted)
+            st.text_area("Encrypted Idli Code:", value=formatted, height=300)
+            
+            # Decrypt back to verify encryption-decryption pair
+            decrypted = idli_code_to_text(encrypted)
+            if decrypted == user_input:
+                st.success("Encryption and Decryption successful! The text matches.")
             else:
-                st.error("Decryption mismatch! The text does not match the original.")
+                st.error("Error: Decryption mismatch. Please check the encryption and decryption process.")
+        else:
+            st.warning("Please enter text to encrypt.")
+
+elif option == 'Decrypt':
+    code_input = st.text_area("Enter your space-separated Idli Code:")
+    if st.button("Decrypt"):
+        if code_input.strip() != "":
+            result = idli_code_to_text(code_input)
+            st.text_area("Decrypted Text:", value=result, height=200)
+            
+            # Check if decrypted text matches the original code
+            encrypted_check = text_to_idli_code(result)
+            if encrypted_check == code_input.strip():
+                st.success("Decryption and encryption matched!")
+            else:
+                st.error("Decryption mismatch detected.")
+        else:
+            st.warning("Please enter Idli Code to decrypt.")
