@@ -69,12 +69,12 @@ if option == 'Encrypt':
 
             error_percent = compare_texts(user_input, decrypted)
 
-            st.text_area("Raw Encrypted Idli Code:", value=encrypted, height=250)
-            st.text_area("Decrypted Output:", value=decrypted, height=200)
+            st.text_area("Encrypted Idli Code:", value=encrypted, height=250)
+            st.text_area("Encrypt-Decryption Pair:", value=decrypted, height=200)
             st.write(f"Character Mismatch: **{error_percent}%**")
 
             if error_percent == 0:
-                st.success("Success: Encryption and decryption matched 100%.")
+                st.success("Success: Input and encrypt-decrypt pair matched 100%.")
             else:
                 st.error("Warning: Decryption mismatch detected.")
         else:
