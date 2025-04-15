@@ -1,87 +1,43 @@
-import React, { useState } from 'react';
+import streamlit as st
 
-const wordToBinary = {
-  Idli: '00',
-  Dosa: '01',
-  Sambar: '10',
-  Chutney: '11',
-};
+# Function to encrypt the text
+def encrypt(text):
+    # Simple encryption logic (you can change this)
+    encrypted_text = ''.join([chr(ord(c) + 3) for c in text])  # Shift each char by 3
+    return encrypted_text
 
-const binaryToWord = {
-  '00': 'Idli',
-  '01': 'Dosa',
-  '10': 'Sambar',
-  '11': 'Chutney',
-};
+# Function to decrypt the text
+def decrypt(text):
+    try:
+        decrypted_text = ''.join([chr(ord(c) - 3) for c in text])  # Reverse the shift
+        return decrypted_text
+    except Exception as e:
+        return f"Error during decryption: {str(e)}"
 
-export default function IdliDecoder() {
-  const [encodedText, setEncodedText] = useState('');
-  const [decodedText, setDecodedText] = useState('');
-  const [errorReport, setErrorReport] = useState('');
+# Streamlit app UI
+st.title("Encryption/Decryption App")
 
-  const decodeText = () => {
-    const words = encodedText
-      .trim()
-      .replace(/\s+/g, ' ')
-      .split(' ');
+# User input
+input_text = st.text_area("Enter your text to encrypt", height=200)
 
-    let errorAt = null;
-    let binaryStr = '';
-    let cleanWords = [];
+# Encrypt button
+if st.button("Encrypt"):
+    encrypted_text = encrypt(input_text)
+    st.subheader("Encrypted Text:")
+    st.text_area("Encrypted Text", encrypted_text, height=200)
+    st.write("You can copy the encrypted text for decryption.")
 
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i];
-      if (!wordToBinary[word]) {
-        errorAt = `Invalid word "${word}" at position ${i + 1}`;
-        break;
-      }
-      cleanWords.push(word);
-      binaryStr += wordToBinary[word];
-    }
-
-    if (errorAt) {
-      setDecodedText('');
-      setErrorReport(errorAt);
-      return;
-    }
-
-    const chars = [];
-    for (let i = 0; i < binaryStr.length; i += 8) {
-      const byte = binaryStr.slice(i, i + 8);
-      const charCode = parseInt(byte, 2);
-      chars.push(String.fromCharCode(charCode));
-    }
-
-    setDecodedText(chars.join(''));
-    setErrorReport('');
-  };
-
-  return (
-    <div className="p-4 space-y-4 max-w-xl mx-auto">
-      <textarea
-        className="w-full p-2 border rounded"
-        rows={6}
-        placeholder="Paste Idli-Dosa-Sambar-Chutney encoded message here..."
-        value={encodedText}
-        onChange={(e) => setEncodedText(e.target.value)}
-      />
-
-      <button
-        onClick={decodeText}
-        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-      >
-        Decrypt
-      </button>
-
-      {errorReport && (
-        <div className="text-red-500 font-mono mt-2">Error: {errorReport}</div>
-      )}
-
-      {decodedText && (
-        <div className="bg-gray-100 p-3 rounded font-mono mt-2">
-          {decodedText}
-        </div>
-      )}
-    </div>
-  );
-}
+# Decrypt button
+if st.button("Decrypt"):
+    encrypted_input = st.text_area("Enter encrypted text to decrypt", height=200)
+    if encrypted_input:
+        decrypted_text = decrypt(encrypted_input)
+        if "Error during decryption" in decrypted_text:
+            st.error(decrypted_text)  # Show error if decryption fails
+        else:
+            st.subheader("Decrypted Text:")
+            st.text_area("Decrypted Text", decrypted_text, height=200)
+            if decrypted_text == input_text:
+                st.success("Decryption successful! The text matches the original.")
+            else:
+                st.error("Decryption mismatch! The text does not match the original.")
