@@ -2,19 +2,21 @@ import streamlit as st
 import textwrap
 import base64
 
-# Encoding dictionaries
+# Encoding dictionary
 word_to_digit = {'Idli': '0', 'Dosa': '1', 'Sambar': '2', 'Chutney': '3'}
 digit_to_word = {v: k for k, v in word_to_digit.items()}
 quaternary_to_binary = {'0': '00', '1': '01', '2': '10', '3': '11'}
 binary_to_quaternary = {v: k for k, v in quaternary_to_binary.items()}
 
-# Functions
 def text_to_idli_code(text):
-    binary_str = ''.join([format(ord(c), '08b') for c in text])
-    chunks = textwrap.wrap(binary_str, 2)
-    quaternary = ''.join([binary_to_quaternary.get(chunk, '') for chunk in chunks])
-    words = [digit_to_word[d] for d in quaternary if d in digit_to_word]
-    return ' '.join(words)
+    try:
+        binary_str = ''.join([format(ord(c), '08b') for c in text])
+        chunks = textwrap.wrap(binary_str, 2)
+        quaternary = ''.join([binary_to_quaternary.get(chunk, '') for chunk in chunks])
+        words = [digit_to_word[d] for d in quaternary if d in digit_to_word]
+        return ' '.join(words)
+    except Exception as e:
+        return f"Encryption error: {str(e)}"
 
 def idli_code_to_text(code):
     try:
@@ -25,76 +27,74 @@ def idli_code_to_text(code):
         decoded = ''.join([chr(int(b, 2)) for b in bytes_ if len(b) == 8])
         return decoded
     except Exception as e:
-        return f"Decryption error: {e}"
+        return f"Decryption error: {str(e)}"
+
+def generate_download_link(content, filename):
+    try:
+        b64 = base64.b64encode(content.encode('utf-8')).decode()
+        return f'<a href="data:text/plain;base64,{b64}" download="{filename}">Download {filename}</a>'
+    except Exception as e:
+        return f"Download link error: {str(e)}"
+
+def compute_accuracy(original, result):
+    original = ''.join(original.strip().split())
+    result = ''.join(result.strip().split())
+    matches = sum(1 for a, b in zip(original, result) if a == b)
+    total = max(len(original), len(result))
+    return round((matches / total) * 100, 2) if total > 0 else 0
 
 def format_idli_code(code_str):
     words = code_str.split()
     lines = [' '.join(words[i:i+10]) for i in range(0, len(words), 10)]
     return '\n'.join(lines)
 
-def generate_download_link(content, filename):
-    b64 = base64.b64encode(content.encode("utf-8")).decode()
-    href = f'<a href="data:application/octet-stream;base64,{b64}" download="{filename}">Download {filename}</a>'
-    return href
+st.set_page_config(page_title="Idli Code", layout="wide")
+st.markdown("<h1 style='text-align: center;'>Idli Code</h1>", unsafe_allow_html=True)
 
-def calculate_accuracy(original, result):
-    cleaned_original = ''.join(original.split())
-    cleaned_result = ''.join(result.split())
-    total = max(len(cleaned_original), 1)
-    matches = sum(o == r for o, r in zip(cleaned_original, cleaned_result))
-    return (matches / total) * 100
+tab1, tab2 = st.tabs(["Encrypt", "Decrypt"])
 
-# UI
-st.set_page_config(page_title="Idli Code", layout="centered")
-st.title("Idli Code")
+with tab1:
+    st.subheader("Enter text to encrypt:")
+    user_input = st.text_area("Text input:", key="enc_input")
 
-option = st.radio("Choose an option:", ['Encrypt', 'Decrypt'])
-
-if option == 'Encrypt':
-    user_input = st.text_area("Enter text to encrypt:", height=150)
     if st.button("Encrypt"):
         if user_input.strip():
             encrypted = text_to_idli_code(user_input)
             formatted = format_idli_code(encrypted)
             re_decrypted = idli_code_to_text(formatted)
-            accuracy = calculate_accuracy(user_input, re_decrypted)
+            accuracy = compute_accuracy(user_input, re_decrypted)
 
-            st.subheader("Encrypted Output")
-            st.text_area("Idli Code", value=formatted, height=250)
-            st.markdown(generate_download_link(formatted, "idli_code.txt"), unsafe_allow_html=True)
+            st.text_area("Encrypted Output:", value=formatted, height=250)
+            st.markdown(generate_download_link(formatted, "encrypted_idli_code.txt"), unsafe_allow_html=True)
 
-            with st.expander("Check encryption accuracy"):
-                st.subheader("Re-Decrypted Output")
-                st.text_area("Re-Decrypted Text", value=re_decrypted, height=200)
-                st.markdown(generate_download_link(re_decrypted, "re_decrypted.txt"), unsafe_allow_html=True)
+            with st.expander("Check accuracy"):
+                st.text_area("Re-Decrypted Output:", value=re_decrypted, height=150)
                 if accuracy == 100:
-                    st.success("Success: Input and encrypted-decrypted pair matched 100%")
+                    st.success("Success: input and encrypted-decrypted pair matched 100%")
                 else:
-                    st.error(f"Warning: Only {accuracy:.2f}% of characters matched.")
-
+                    st.error(f"Warning: Only {accuracy}% match between input and encrypted-decrypted pair")
         else:
             st.warning("Please enter some text to encrypt.")
 
-elif option == 'Decrypt':
-    code_input = st.text_area("Enter Idli Code to decrypt:", height=200)
+with tab2:
+    st.subheader("Enter your Idli Code to decrypt:")
+    code_input = st.text_area("Idli Code input:", key="dec_input")
+
     if st.button("Decrypt"):
         if code_input.strip():
             decrypted = idli_code_to_text(code_input)
             re_encrypted = text_to_idli_code(decrypted)
-            formatted_re_encrypted = format_idli_code(re_encrypted)
-            accuracy = calculate_accuracy(code_input.replace('\n', '').replace('  ', ' '), re_encrypted)
+            formatted = format_idli_code(re_encrypted)
+            accuracy = compute_accuracy(' '.join(code_input.split()), ' '.join(formatted.split()))
 
-            st.subheader("Decrypted Output")
-            st.text_area("Text", value=decrypted, height=200)
+            st.text_area("Decrypted Output:", value=decrypted, height=200)
             st.markdown(generate_download_link(decrypted, "decrypted_text.txt"), unsafe_allow_html=True)
 
-            with st.expander("Check decryption accuracy"):
-                st.subheader("Re-Encrypted Output")
-                st.text_area("Re-Encrypted Idli Code", value=formatted_re_encrypted, height=250)
-                st.markdown(generate_download_link(formatted_re_encrypted, "re_encrypted.txt"), unsafe_allow_html=True)
+            with st.expander("Check accuracy"):
+                st.text_area("Re-Encrypted Output:", value=formatted, height=150)
                 if accuracy == 100:
-                    st.success("Success: Input and re-encrypted-decrypted pair matched 100%")
+                    st.success("Success: original and decrypted-re-encrypted pair matched 100%")
                 else:
-                    st.error(f"Warning: Only {accuracy:.2f}% of characters matched.")
+                    st.error(f"Warning: Only {accuracy}% match between original and decrypted-re-encrypted pair")
         else:
-            st.warning("Please enter Idli Code to decrypt.")
+            st.warning("Please enter the Idli Code to decrypt.")
