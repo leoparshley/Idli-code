@@ -40,14 +40,22 @@ if option == "Encrypt":
     text = st.text_area("Enter text to encrypt", height=200)
     if st.button("Encrypt"):
         encrypted_text = encrypt(text)
-        # Add line breaks in encrypted text for better display
-        wrapped_encrypted_text = '\n'.join([encrypted_text[i:i+60] for i in range(0, len(encrypted_text), 60)])
+        # Format the text for better readability
+        wrapped_encrypted_text = encrypted_text  # Don't add line breaks here
+
         # Display the formatted output as code
         st.code(wrapped_encrypted_text)
-        
-        # Add "Copy to Clipboard" button for encrypted text
+
+        # Add "Copy to Clipboard" button for encrypted text using JavaScript (This requires HTML embedding)
+        st.markdown(f"""
+            <button onclick="navigator.clipboard.writeText('{wrapped_encrypted_text}')">
+            Copy Encrypted Text to Clipboard
+            </button>
+            """, unsafe_allow_html=True)
+
+        # Add "Download" button for encrypted text
         st.download_button(
-            label="Copy Encrypted Text",
+            label="Download Encrypted Text",
             data=wrapped_encrypted_text,
             file_name="encrypted_text.txt",
             mime="text/plain"
@@ -59,10 +67,17 @@ else:
         decrypted_text = decrypt(code)
         # Display the decrypted text as code
         st.code(decrypted_text)
-        
-        # Add "Copy to Clipboard" button for decrypted text
+
+        # Add "Copy to Clipboard" button for decrypted text using JavaScript (This requires HTML embedding)
+        st.markdown(f"""
+            <button onclick="navigator.clipboard.writeText('{decrypted_text}')">
+            Copy Decrypted Text to Clipboard
+            </button>
+            """, unsafe_allow_html=True)
+
+        # Add "Download" button for decrypted text
         st.download_button(
-            label="Copy Decrypted Text",
+            label="Download Decrypted Text",
             data=decrypted_text,
             file_name="decrypted_text.txt",
             mime="text/plain"
