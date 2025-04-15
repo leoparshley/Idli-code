@@ -1,5 +1,6 @@
 import streamlit as st
 import textwrap
+import base64  # Added import for base64
 
 # Encoding and decoding dictionaries
 word_to_digit = {'Idli': '0', 'Dosa': '1', 'Sambar': '2', 'Chutney': '3'}
