@@ -57,7 +57,8 @@ def idli_code_to_text_decrypt(code: str) -> Tuple[Optional[str], Optional[List[s
     except Exception as e:
         return None, [f"Error during final decryption: {e}"]
 
-def format_idli_code_output(code_str: str, words_per_line: int = 10) -> str:
+# Adjusted words_per_line slightly, might help mobile but check appearance
+def format_idli_code_output(code_str: str, words_per_line: int = 8) -> str:
     if not code_str: return ""
     words = code_str.split()
     lines = [' '.join(words[i:i+words_per_line]) for i in range(0, len(words), words_per_line)]
@@ -66,7 +67,7 @@ def format_idli_code_output(code_str: str, words_per_line: int = 10) -> str:
 # --- Streamlit UI ---
 st.set_page_config(
     page_title="Idli Code Converter",
-    layout="centered"
+    layout="centered" # Crucial for responsiveness baseline
 )
 
 # --- Header ---
@@ -89,6 +90,7 @@ st.write("")
 
 # --- Encrypt ---
 if option == 'Encrypt Text':
+    # Container helps group elements, border adds visual separation
     with st.container(border=True):
         st.subheader("Encrypt Text → Idli Code")
         st.markdown("Enter text below to convert it into 'Idli Code'.")
@@ -100,25 +102,27 @@ if option == 'Encrypt Text':
             label_visibility="visible",
             placeholder="Type or paste text here..."
         )
-        st.write("")
+        st.write("") # Vertical space
 
         encrypt_pressed = st.button("Encrypt Text", key="encrypt_button", type="primary")
 
+        # Output section appears below after button press
         if encrypt_pressed:
             input_text = user_input.strip()
             if input_text:
                 with st.spinner("Encrypting..."):
                     encrypted_code = text_to_idli_code_encrypt(input_text)
 
-                st.markdown("---")
+                st.markdown("---") # Divider before output
 
                 if "Error" not in encrypted_code:
                     formatted_code = format_idli_code_output(encrypted_code)
 
                     st.markdown("##### Encrypted Idli Code:")
-                    # --- CHANGE HERE: Use st.code for encrypted output ---
-                    st.code(formatted_code, language=None, line_numbers=False)
-                    # ------------------------------------------------------
+                    # Keep st.code for Idli Code - less likely to overflow due to formatting
+                    with st.container():
+                        st.code(formatted_code, language=None, line_numbers=False)
+                    st.caption("Tip: Click inside the code block above before using Select All (Ctrl+A / Cmd+A).")
                     st.write("")
 
                     st.download_button(
@@ -129,7 +133,7 @@ if option == 'Encrypt Text':
                         key="download_encrypted"
                     )
 
-                    # --- Verification Expander ---
+                    # Verification uses columns which are responsive
                     with st.expander("Verification Details (Optional)"):
                         st.caption("_The encrypted code was automatically decrypted back to check consistency._")
                         re_decrypted_text, errors = idli_code_to_text_decrypt(encrypted_code)
@@ -137,24 +141,23 @@ if option == 'Encrypt Text':
                             st.error(f"Verification Error: Could not decrypt the generated code. Details: `{errors}`")
                         elif re_decrypted_text is not None:
                             st.caption("**Text After Round-Trip:**")
-                            # Use disabled text area for verification output (plain text)
-                            st.text_area("Re-decrypted Text Area Verify", value=re_decrypted_text, height=100, key="redecrypted_verify", disabled=True, label_visibility="collapsed")
+                            # Use text_area for plain text verification output - handles wrapping
+                            st.text_area("Re-decrypted Verify Area", value=re_decrypted_text, height=100, key="redecrypted_verify", disabled=True, label_visibility="collapsed")
                             if input_text == re_decrypted_text:
                                 st.success("Verification Successful: Original and re-decrypted text match.")
                             else:
                                 st.error("Verification Failed: Original and re-decrypted text differ.")
-                                v_col1, v_col2 = st.columns(2)
+                                v_col1, v_col2 = st.columns(2) # Responsive columns
                                 with v_col1: st.caption("Original:"); st.code(input_text, language=None)
                                 with v_col2: st.caption("Re-decrypted:"); st.code(re_decrypted_text, language=None)
                         else:
                             st.warning("Verification could not be performed (decryption failed).")
-                else:
-                    pass # Error already shown
-            else:
-                st.warning("Please enter text to encrypt.")
+                else: pass # Error shown by function
+            else: st.warning("Please enter text to encrypt.")
 
 # --- Decrypt ---
 elif option == 'Decrypt Idli Code':
+    # Container helps group elements
     with st.container(border=True):
         st.subheader("Decrypt Idli Code → Text")
         st.markdown("Enter an 'Idli Code' sequence to convert it back to text.")
@@ -171,28 +174,30 @@ elif option == 'Decrypt Idli Code':
 
         decrypt_pressed = st.button("Decrypt Code", key="decrypt_button", type="primary")
 
+        # Output section appears below
         if decrypt_pressed:
             cleaned_input = code_input.strip()
             if cleaned_input:
                 with st.spinner("Decrypting..."):
                     decrypted_text, errors = idli_code_to_text_decrypt(cleaned_input)
 
-                st.markdown("---")
+                st.markdown("---") # Divider
 
                 if errors:
+                    # Simplified error checking/display
                     is_structure_error = any("Invalid 'Idli Code' structure" in str(e) for e in errors)
-                    is_conversion_error = any("Problem converting binary" in str(e) for e in errors)
-                    is_internal_error = any("Internal Error" in str(e) for e in errors)
-                    if is_structure_error or is_conversion_error or is_internal_error:
+                    if is_structure_error or any("Problem converting binary" in str(e) for e in errors) or any("Internal Error" in str(e) for e in errors):
                          st.error(f"Decryption Error: {errors[0]}")
                     else:
                          st.error(f"Invalid Input: Found words not part of the 'Idli Code' format: `{', '.join(errors)}`")
                          st.caption("Please ensure the input contains only the allowed code words.")
                 elif decrypted_text is not None:
                     st.markdown("##### Decrypted Text:")
-                    # --- KEEP USING st.text_area for decrypted output ---
-                    st.text_area("Decrypted Text Area Output", value=decrypted_text, height=140, key="decrypted_output", disabled=True, label_visibility="collapsed")
-                    # -----------------------------------------------------
+                    # --- CHANGE HERE: Use text_area for decrypted output for wrapping ---
+                    st.text_area("Decrypted Text Output Area", value=decrypted_text, height=140, key="decrypted_output", disabled=True, label_visibility="collapsed")
+                    # Note: Text will be slightly dimmed, but wrapping is prioritized for responsiveness.
+                    st.caption("Tip: Click inside the text block above before using Select All (Ctrl+A / Cmd+A).")
+                    # ---------------------------------------------------------------------
                     st.write("")
 
                     st.download_button(
@@ -203,7 +208,7 @@ elif option == 'Decrypt Idli Code':
                         key="download_decrypted"
                     )
 
-                    # --- Verification Expander ---
+                    # Verification uses columns which are responsive
                     with st.expander("Verification Details (Optional)"):
                         st.caption("_The decrypted text was re-encrypted to check consistency with the input code._")
                         re_encrypted_code = text_to_idli_code_encrypt(decrypted_text)
@@ -213,15 +218,16 @@ elif option == 'Decrypt Idli Code':
                             st.error(f"Verification Error: Could not re-encrypt the result. Details: `{re_encrypted_code}`")
                         else:
                             st.caption("**Re-encrypted Code (from decrypted text):**")
-                            # Use st.code for verification output (Idli code)
                             formatted_reencrypted = format_idli_code_output(re_encrypted_code)
-                            st.code(formatted_reencrypted, language=None, line_numbers=False) # Consistent with main encrypted output
+                            # Use st.code for verification output (Idli code)
+                            with st.container():
+                                st.code(formatted_reencrypted, language=None, line_numbers=False)
                             if standardized_original_code == re_encrypted_code:
                                 st.success("Verification Successful: Input code matches re-encrypted text.")
                             else:
                                 st.error("Verification Failed: Input code differs from re-encrypted text.")
                                 st.caption("Mismatch may be due to invalid words/formatting in original input.")
-                                v_col1, v_col2 = st.columns(2)
+                                v_col1, v_col2 = st.columns(2) # Responsive columns
                                 with v_col1: st.caption("Standardized Input:"); st.code(standardized_original_code, language=None)
                                 with v_col2: st.caption("Re-encrypted:"); st.code(re_encrypted_code, language=None)
                 elif decrypted_text is None and not errors:
