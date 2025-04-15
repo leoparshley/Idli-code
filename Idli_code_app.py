@@ -20,4 +20,50 @@ def decrypt(code):
     
     try:
         # Convert the idli code back to quaternary
-        words =
+        words = code.split()
+        quaternary = [word_to_quat[word] for word in words]
+        # Convert quaternary to binary
+        binary = ''.join(quat_to_bin[q] for q in quaternary)
+        # Convert binary to text
+        text = ''.join(chr(int(binary[i:i+8], 2)) for i in range(0, len(binary), 8))
+        return text
+    except Exception as e:
+        return "Invalid Idli Code! Please ensure the input is correct."
+
+# Streamlit settings
+st.set_page_config(page_title="Idli Code Encryptor", layout="centered")
+st.title("Idli Code Encryptor & Decryptor")
+
+option = st.radio("Choose an option", ["Encrypt", "Decrypt"])
+
+if option == "Encrypt":
+    text = st.text_area("Enter text to encrypt", height=200)
+    if st.button("Encrypt"):
+        encrypted_text = encrypt(text)
+        # Add line breaks in encrypted text for better display
+        wrapped_encrypted_text = '\n'.join([encrypted_text[i:i+60] for i in range(0, len(encrypted_text), 60)])
+        # Display the formatted output as code
+        st.code(wrapped_encrypted_text)
+        
+        # Add "Copy to Clipboard" button for encrypted text
+        st.download_button(
+            label="Copy Encrypted Text",
+            data=wrapped_encrypted_text,
+            file_name="encrypted_text.txt",
+            mime="text/plain"
+        )
+
+else:
+    code = st.text_area("Enter Idli code to decrypt", height=200)
+    if st.button("Decrypt"):
+        decrypted_text = decrypt(code)
+        # Display the decrypted text as code
+        st.code(decrypted_text)
+        
+        # Add "Copy to Clipboard" button for decrypted text
+        st.download_button(
+            label="Copy Decrypted Text",
+            data=decrypted_text,
+            file_name="decrypted_text.txt",
+            mime="text/plain"
+        )
