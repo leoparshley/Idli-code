@@ -48,8 +48,8 @@ def format_idli_code(code_str):
     lines = [' '.join(words[i:i+10]) for i in range(0, len(words), 10)]
     return '\n'.join(lines)
 
-st.set_page_config(page_title="Idli Code Encryptor", layout="wide")
-st.markdown("<h1 style='text-align: center;'>Idli Code Encryptor / Decryptor</h1>", unsafe_allow_html=True)
+st.set_page_config(page_title="Idli Code", layout="wide")
+st.markdown("<h1 style='text-align: center;'>Idli Code</h1>", unsafe_allow_html=True)
 
 tab1, tab2 = st.tabs(["Encrypt", "Decrypt"])
 
