@@ -2,56 +2,56 @@ import streamlit as st
 import textwrap
 import base64
 
-# Mapping
-bit_to_word = {'00': 'Idli', '01': 'Dosa', '10': 'Sambar', '11': 'Chutney'}
-word_to_bit = {v: k for k, v in bit_to_word.items()}
-
-# Core functions
-def binary_to_words(binary):
-    if len(binary) % 2 != 0:
-        binary += '0'
-    return ' '.join([bit_to_word[binary[i:i+2]] for i in range(0, len(binary), 2)])
-
-def words_to_binary(words):
-    parts = words.strip().split()
-    try:
-        return ''.join([word_to_bit[w] for w in parts])
-    except KeyError as e:
-        raise ValueError(f"Invalid word found: {e}. Only Idli, Dosa, Sambar, Chutney are allowed.")
+# Encoding maps
+word_to_digit = {'Idli': '0', 'Dosa': '1', 'Sambar': '2', 'Chutney': '3'}
+digit_to_word = {v: k for k, v in word_to_digit.items()}
+quaternary_to_binary = {'0': '00', '1': '01', '2': '10', '3': '11'}
+binary_to_quaternary = {v: k for k, v in quaternary_to_binary.items()}
 
 def text_to_idli_code(text):
-    try:
-        b64_encoded = base64.b64encode(text.encode('utf-8')).decode('utf-8')
-        binary = ''.join(format(ord(c), '08b') for c in b64_encoded)
-        return binary_to_words(binary)
-    except Exception as e:
-        return f"Encryption error: {e}"
+    binary_str = ''.join([format(ord(c), '08b') for c in text])
+    chunks = textwrap.wrap(binary_str, 2)
+    quaternary = ''.join([binary_to_quaternary.get(chunk, '') for chunk in chunks])
+    words = [digit_to_word[d] for d in quaternary if d in digit_to_word]
+    return ' '.join(words)
 
 def idli_code_to_text(code):
-    try:
-        binary = words_to_binary(code)
-        byte_chunks = textwrap.wrap(binary, 8)
-        chars = [chr(int(b, 2)) for b in byte_chunks if len(b) == 8]
-        b64_text = ''.join(chars)
-        decoded_bytes = base64.b64decode(b64_text)
-        return decoded_bytes.decode('utf-8')
-    except Exception as e:
-        return f"Decryption error: {e}"
+    code_words = code.strip().split()
+    errors = []
+    valid_digits = []
 
-def compare_texts(text1, text2):
-    total = max(len(text1), len(text2))
-    if total == 0:
-        return 0.0
-    mismatch = sum(a != b for a, b in zip(text1, text2)) + abs(len(text1) - len(text2))
-    return round((mismatch / total) * 100, 2)
+    for i, word in enumerate(code_words):
+        if word not in word_to_digit:
+            errors.append(f"Line ~{(i // 10) + 1}: Invalid word '{word}'")
+        else:
+            valid_digits.append(word_to_digit[word])
+
+    quaternary = ''.join(valid_digits)
+
+    try:
+        binary = ''.join([quaternary_to_binary[d] for d in quaternary])
+        # Truncate to 8-bit blocks
+        binary = binary[:len(binary) - (len(binary) % 8)]
+        bytes_ = textwrap.wrap(binary, 8)
+        decoded = ''.join([chr(int(b, 2)) for b in bytes_ if len(b) == 8 and int(b, 2) < 256])
+        return decoded, errors
+    except Exception:
+        return "[Decryption error: malformed input]", ["Decryption failed due to corrupt code."]
 
 def format_idli_code(code_str):
     words = code_str.split()
     lines = [' '.join(words[i:i+10]) for i in range(0, len(words), 10)]
     return '\n'.join(lines)
 
-def download_button(data, filename, label):
-    st.download_button(label=label, data=data, file_name=filename, mime="text/plain")
+def compare_accuracy(original, result):
+    matches = sum(1 for o, r in zip(original, result) if o == r)
+    total = len(original)
+    accuracy = (matches / total * 100) if total > 0 else 0
+    return round(accuracy, 2)
+
+def generate_download_link(data, filename):
+    b64 = base64.b64encode(data.encode()).decode()
+    return f'<a href="data:file/txt;base64,{b64}" download="{filename}">Download {filename}</a>'
 
 # Streamlit UI
 st.title("Idli Code Encryptor & Decryptor")
@@ -63,43 +63,43 @@ if option == 'Encrypt':
     if st.button("Encrypt"):
         if user_input.strip():
             encrypted = text_to_idli_code(user_input)
-            decrypted = idli_code_to_text(encrypted)
-            mismatch = compare_texts(user_input, decrypted)
+            formatted = format_idli_code(encrypted)
+            re_decrypted, _ = idli_code_to_text(encrypted)
+            accuracy = compare_accuracy(user_input, re_decrypted)
 
-            formatted_encrypted = format_idli_code(encrypted)
-            st.text_area("Encrypted Idli Code:", value=formatted_encrypted, height=250)
-            download_button(formatted_encrypted, "encrypted_idli_code.txt", "Download Encrypted Idli Code")
-
-            st.text_area("Re-decrypted Encrypt:", value=decrypted, height=200)
-            download_button(decrypted, "re_decrypted_text.txt", "Download Re-decrypted Output")
-
-            st.write(f"Character Mismatch: **{mismatch}%**")
-            if mismatch == 0:
-                st.success("Success: input and encrypted-decrypted pair matched 100%.")
+            st.text_area("Encrypted Idli Code:", value=formatted, height=300)
+            st.text_area("Re-Decrypted Encrypt Output:", value=re_decrypted, height=200)
+            if accuracy == 100:
+                st.success("Success: input and re-decrypted encrypt matched 100%")
             else:
-                st.error("Warning: Input and re-decrypted text do not match perfectly.")
+                st.error(f"Error: {100 - accuracy}% mismatch between input and encrypted-decrypted pair")
+
+            st.markdown(generate_download_link(formatted, "idli_code.txt"), unsafe_allow_html=True)
+            st.markdown(generate_download_link(re_decrypted, "redecrypted_output.txt"), unsafe_allow_html=True)
         else:
-            st.warning("Please enter text to encrypt.")
+            st.warning("Please enter some text to encrypt.")
 
 elif option == 'Decrypt':
-    code_input = st.text_area("Enter your space-separated Idli Code:")
+    code_input = st.text_area("Enter your Idli Code:")
     if st.button("Decrypt"):
         if code_input.strip():
-            decrypted_text = idli_code_to_text(code_input)
-            re_encrypted = text_to_idli_code(decrypted_text)
-            formatted_re_encrypted = format_idli_code(re_encrypted)
-            mismatch = compare_texts(code_input.strip(), re_encrypted.strip())
+            decrypted, error_list = idli_code_to_text(code_input)
+            re_encrypted = text_to_idli_code(decrypted)
+            formatted_re_enc = format_idli_code(re_encrypted)
+            re_decrypted, _ = idli_code_to_text(re_encrypted)
+            accuracy = compare_accuracy(decrypted, re_decrypted)
 
-            st.text_area("Decrypted Output:", value=decrypted_text, height=200)
-            download_button(decrypted_text, "decrypted_text.txt", "Download Decrypted Text")
-
-            st.text_area("Re-encrypted Decrypt:", value=formatted_re_encrypted, height=250)
-            download_button(formatted_re_encrypted, "re_encrypted_code.txt", "Download Re-encrypted Output")
-
-            st.write(f"Character Mismatch: **{mismatch}%**")
-            if mismatch == 0:
-                st.success("Success: Idli code and re-encrypted text matched 100%.")
+            st.text_area("Decrypted Text:", value=decrypted, height=200)
+            st.text_area("Re-Decrypted Encrypt Output:", value=re_decrypted, height=200)
+            if accuracy == 100:
+                st.success("Success: decrypted text and re-decrypted encrypt matched 100%")
             else:
-                st.error("Warning: Idli code and re-encrypted output differ.")
+                st.error(f"Error: {100 - accuracy}% mismatch in round-trip decryption")
+
+            if error_list:
+                st.warning("Issues found:\n" + "\n".join(error_list))
+
+            st.markdown(generate_download_link(decrypted, "decrypted_text.txt"), unsafe_allow_html=True)
+            st.markdown(generate_download_link(re_decrypted, "redecrypted_output.txt"), unsafe_allow_html=True)
         else:
             st.warning("Please enter Idli Code to decrypt.")
