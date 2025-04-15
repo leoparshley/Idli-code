@@ -2,15 +2,11 @@ import streamlit as st
 import textwrap
 import base64
 
-# Mapping 2-bit binary to idli words
-bit_to_word = {
-    '00': 'Idli',
-    '01': 'Dosa',
-    '10': 'Sambar',
-    '11': 'Chutney'
-}
+# Mapping
+bit_to_word = {'00': 'Idli', '01': 'Dosa', '10': 'Sambar', '11': 'Chutney'}
 word_to_bit = {v: k for k, v in bit_to_word.items()}
 
+# Core functions
 def binary_to_words(binary):
     if len(binary) % 2 != 0:
         binary += '0'
@@ -42,18 +38,20 @@ def idli_code_to_text(code):
     except Exception as e:
         return f"Decryption error: {e}"
 
-def compare_texts(original, recovered):
-    total = max(len(original), len(recovered))
+def compare_texts(text1, text2):
+    total = max(len(text1), len(text2))
     if total == 0:
-        return 0
-    mismatch = sum(o != r for o, r in zip(original, recovered)) + abs(len(original) - len(recovered))
-    error_percent = (mismatch / total) * 100
-    return round(error_percent, 2)
+        return 0.0
+    mismatch = sum(a != b for a, b in zip(text1, text2)) + abs(len(text1) - len(text2))
+    return round((mismatch / total) * 100, 2)
 
 def format_idli_code(code_str):
     words = code_str.split()
     lines = [' '.join(words[i:i+10]) for i in range(0, len(words), 10)]
     return '\n'.join(lines)
+
+def download_button(data, filename, label):
+    st.download_button(label=label, data=data, file_name=filename, mime="text/plain")
 
 # Streamlit UI
 st.title("Idli Code Encryptor & Decryptor")
@@ -66,17 +64,20 @@ if option == 'Encrypt':
         if user_input.strip():
             encrypted = text_to_idli_code(user_input)
             decrypted = idli_code_to_text(encrypted)
+            mismatch = compare_texts(user_input, decrypted)
 
-            error_percent = compare_texts(user_input, decrypted)
+            formatted_encrypted = format_idli_code(encrypted)
+            st.text_area("Encrypted Idli Code:", value=formatted_encrypted, height=250)
+            download_button(formatted_encrypted, "encrypted_idli_code.txt", "Download Encrypted Idli Code")
 
-            st.text_area("Encrypted Idli Code:", value=encrypted, height=250)
-            st.text_area("Encrypt-Decryption Pair:", value=decrypted, height=200)
-            st.write(f"Character Mismatch: **{error_percent}%**")
+            st.text_area("Re-decrypted Encrypt:", value=decrypted, height=200)
+            download_button(decrypted, "re_decrypted_text.txt", "Download Re-decrypted Output")
 
-            if error_percent == 0:
-                st.success("Success: Input and encrypt-decrypt pair matched 100%.")
+            st.write(f"Character Mismatch: **{mismatch}%**")
+            if mismatch == 0:
+                st.success("Success: input and encrypted-decrypted pair matched 100%.")
             else:
-                st.error("Warning: Decryption mismatch detected.")
+                st.error("Warning: Input and re-decrypted text do not match perfectly.")
         else:
             st.warning("Please enter text to encrypt.")
 
@@ -84,7 +85,21 @@ elif option == 'Decrypt':
     code_input = st.text_area("Enter your space-separated Idli Code:")
     if st.button("Decrypt"):
         if code_input.strip():
-            result = idli_code_to_text(code_input)
-            st.text_area("Decrypted Output:", value=result, height=200)
+            decrypted_text = idli_code_to_text(code_input)
+            re_encrypted = text_to_idli_code(decrypted_text)
+            formatted_re_encrypted = format_idli_code(re_encrypted)
+            mismatch = compare_texts(code_input.strip(), re_encrypted.strip())
+
+            st.text_area("Decrypted Output:", value=decrypted_text, height=200)
+            download_button(decrypted_text, "decrypted_text.txt", "Download Decrypted Text")
+
+            st.text_area("Re-encrypted Decrypt:", value=formatted_re_encrypted, height=250)
+            download_button(formatted_re_encrypted, "re_encrypted_code.txt", "Download Re-encrypted Output")
+
+            st.write(f"Character Mismatch: **{mismatch}%**")
+            if mismatch == 0:
+                st.success("Success: Idli code and re-encrypted text matched 100%.")
+            else:
+                st.error("Warning: Idli code and re-encrypted output differ.")
         else:
             st.warning("Please enter Idli Code to decrypt.")
