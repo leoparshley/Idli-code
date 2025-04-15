@@ -36,21 +36,39 @@ st.title("Idli Code Encryptor & Decryptor")
 
 option = st.radio("Choose an option", ["Encrypt", "Decrypt"])
 
+def wrap_encrypted_text(text, line_length=100):
+    """ Function to wrap the encrypted text for better readability while keeping it reversible """
+    words = text.split()  # Split the encrypted text into words
+    wrapped_text = []
+    
+    # Group the words into lines of a specified length
+    for i in range(0, len(words), line_length):
+        wrapped_text.append(' '.join(words[i:i + line_length]))
+    
+    # Join the wrapped lines with line breaks
+    return '\n'.join(wrapped_text)
+
 if option == "Encrypt":
     text = st.text_area("Enter text to encrypt", height=200)
     if st.button("Encrypt"):
         encrypted_text = encrypt(text)
-        # Format the text for better readability
-        wrapped_encrypted_text = encrypted_text  # Don't add line breaks here
+        
+        # Wrap the encrypted text to improve readability, 100 words per line
+        wrapped_encrypted_text = wrap_encrypted_text(encrypted_text, line_length=100)
 
         # Display the formatted output as code
         st.code(wrapped_encrypted_text)
 
-        # Add "Copy to Clipboard" button for encrypted text using JavaScript (This requires HTML embedding)
+        # Add "Copy to Clipboard" button for encrypted text using JavaScript
         st.markdown(f"""
             <button onclick="navigator.clipboard.writeText('{wrapped_encrypted_text}')">
             Copy Encrypted Text to Clipboard
             </button>
+            <script>
+                document.querySelector('button').style.padding = '10px';
+                document.querySelector('button').style.fontSize = '14px';
+                document.querySelector('button').style.cursor = 'pointer';
+            </script>
             """, unsafe_allow_html=True)
 
         # Add "Download" button for encrypted text
@@ -68,11 +86,16 @@ else:
         # Display the decrypted text as code
         st.code(decrypted_text)
 
-        # Add "Copy to Clipboard" button for decrypted text using JavaScript (This requires HTML embedding)
+        # Add "Copy to Clipboard" button for decrypted text using JavaScript
         st.markdown(f"""
             <button onclick="navigator.clipboard.writeText('{decrypted_text}')">
             Copy Decrypted Text to Clipboard
             </button>
+            <script>
+                document.querySelector('button').style.padding = '10px';
+                document.querySelector('button').style.fontSize = '14px';
+                document.querySelector('button').style.cursor = 'pointer';
+            </script>
             """, unsafe_allow_html=True)
 
         # Add "Download" button for decrypted text
